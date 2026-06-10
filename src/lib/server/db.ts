@@ -1,7 +1,15 @@
 import Database from 'better-sqlite3';
 import { env } from '$env/dynamic/private';
+import { mkdirSync } from 'fs';
+import { dirname } from 'path';
 
 const dbPath = env.DATABASE_PATH || './spur-chat.db';
+
+// Ensure the parent directory exists (for Render's persistent disk mount)
+const dir = dirname(dbPath);
+if (dir && dir !== '.') {
+	mkdirSync(dir, { recursive: true });
+}
 
 // Export a single shared connection (synchronous)
 export const db = new Database(dbPath);
