@@ -9,32 +9,32 @@
 
 	let chatContainer = $state<HTMLDivElement | null>(null);
 
+	function safeStorage(action: 'get' | 'set' | 'remove', key: string, value?: string): string | null {
+		try {
+			if (action === 'get') return localStorage.getItem(key);
+			if (action === 'set') { localStorage.setItem(key, value!); return null; }
+			if (action === 'remove') { localStorage.removeItem(key); return null; }
+		} catch {
+			return null;
+		}
+		return null;
+	}
+
 	// ---------- Mount once: load session & history ----------
 	let mounted = $state(false);
 	$effect(() => {
 		if (mounted) return;
 		mounted = true;
 
-		const stored = localStorage.getItem('sessionId');
+		const stored = safeStorage('get', 'sessionId');
 		if (stored) {
 			sessionId = stored;
 			loadHistory();
 		}
 	});
-    function safeStorage(action: 'get' | 'set' | 'remove', key: string, value?: string): string | null {
-	try {
-		if (action === 'get') return localStorage.getItem(key);
-		if (action === 'set') { localStorage.setItem(key, value!); return null; }
-		if (action === 'remove') { localStorage.removeItem(key); return null; }
-	} catch {
-		return null;
-	}
-	return null;
-    }
 
 	// ---------- Auto‑scroll after messages update ----------
 	$effect(() => {
-		// This reads messages.length, so it reruns when messages change
 		void messages.length;
 		chatContainer?.scrollTo({ top: chatContainer.scrollHeight, behavior: 'smooth' });
 	});
@@ -48,10 +48,11 @@
 					sender: m.sender,
 					text: m.text
 				}));
-			} else if (res.status === 404) {
-				// session no longer valid
+			} else if (res.status === 404 || res.status === 400) {
+				// Old session no longer valid, start fresh
 				sessionId = null;
-				localStorage.removeItem('sessionId');
+				messages = [];
+				safeStorage('remove', 'sessionId');
 			}
 		} catch {
 			// silently fail – user can still start a new chat
@@ -85,7 +86,7 @@
 			// Update sessionId if we got a new one
 			if (data.sessionId && data.sessionId !== sessionId) {
 				sessionId = data.sessionId;
-				localStorage.setItem('sessionId', sessionId);
+				safeStorage('set', 'sessionId', sessionId);
 			}
 
 			// Add AI reply
@@ -106,6 +107,7 @@
 		}
 	}
 </script>
+
 <div class="widget">
 	<!-- Header -->
 	<div class="header">
