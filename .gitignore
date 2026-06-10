@@ -19,6 +19,7 @@ Desktop.ini
 !.env.example
 !.env.test
 
+
 # Vite
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
